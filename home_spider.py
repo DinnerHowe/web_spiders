@@ -10,11 +10,6 @@ import urllib
 import re
 import os
 
-def generate_allurl(user_in_nub):
-    url = 'http://gz.lianjia.com/ershoufang/pg{}/'
-    for url_next in range(1,int(user_in_nub)):
-        yield url.format(url_next)
-
 def getHTML(url):
     print u"获取网址: %s..."%url
     page = urllib.urlopen(url)
@@ -54,6 +49,11 @@ def downLoadImge(webside):
             x += 1
     page_file.close()
     print u"完成..."
+
+def generate_allurl(user_in_nub):
+    url = 'http://gz.lianjia.com/ershoufang/pg{}/'
+    for url_next in range(1,int(user_in_nub)):
+        yield url.format(url_next)
 
 if __name__ == "__main__":
     url_input = raw_input("请输入网址连接：")
