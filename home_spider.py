@@ -6,65 +6,72 @@ This program is free software;
 you can redistribute it and/or modify it
 spdier for images from website
 """
-import urllib
+import urllib2
 import re
 import os
+import scrapy
 
-def getHTML(url):
-    print u"获取网址: %s..."%url
-    page = urllib.urlopen(url)
-    html_code = page.read()
-    return html_code
+class HomeSpider():
+    def getLink(self, url):
+        headers = ("User-Agent", "Mozilla/5.0 (Windows NT 10.0; WOW64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/62.0.3202.94 Safari/537.36")
+        opener = urllib2.build_opener()
+        opener.addheaders = [headers]
+        urllib2.install_opener(opener)
+        file = urllib2.urlopen(url).read()
+        file = file.decode('utf-8')
+        pattern = '(https?://[^\s)";]+(\.(\w|/)*))'
+        link = re.compile(pattern).findall(file)
+        #去重
+        link = list(set(link))
+        return link
 
-def defineRegularFormuler(html, reg):
-    reg_ = re.compile(reg)
-    reg_list = reg_.findall(html)
-    return reg_list
+    def parse(self, response):
+        houses = response.xpath(".//ul[@class='sellListContent']/li")
+        for house in houses:
+            attention = ''
+            visited = ''
+            publishday = ''
+            try:
+                attention = house.xpath(".//div[@class='followInfo']/text()").re("\d+")[0]
+                visited = house.xpath(".//div[@class='followInfo']/text()").re("\d+")[1]
+                # 因为发布日期中可能单位不是天，所以我做了简单的转化。
+                if u'月' in house.xpath(".//div[@class='followInfo']/text()").extract()[0].split('/')[2]:
+                    number = house.xpath(".//div[@class='followInfo']/text()").re("\d+")[2]
+                    publishday = '' + int(number) * 30
 
-def downLoadImge(webside):
-    html_code = getHTML(webside)
-    reg_jpg = r'src="(.+?\.jpg)"'
-    print u"网页图片抓取..."
-    img_list_jpg = defineRegularFormuler(html_code, reg_jpg)
-    reg_png  = r'src="(.+?\.png)"'
-    img_list_png = defineRegularFormuler(html_code, reg_png)
-    img_list = []
-    img_list.extend(img_list_jpg)
-    img_list.extend(img_list_png)
-    path = os.getcwd() + "/imgs/"
-    if not os.path.exists(path):
-        os.makedirs(path, mode=0o777)
-    page_file = open(path + 'image_list.txt', 'w')
-    x = 1
-    print u"下载图片，从%s..."%webside
-    page_file.writelines("IMAGES LIST: \n")
-    for i in img_list:
-        if "</" not in i:
-            print i
-            name_str  = i.split("sign=")
-            name = name_str[-1].split(".jpg")[0].split("/")[-1]
-            urllib.urlretrieve(i, path+'%s.jpg'%name)
-            page_file.writelines("%d: "%x + i)
-            page_file.writelines("\n")
-            x += 1
-    page_file.close()
-    print u"完成..."
-
-def generate_allurl(user_in_nub):
-    url = 'http://gz.lianjia.com/ershoufang/pg{}/'
-    for url_next in range(1,int(user_in_nub)):
-        yield url.format(url_next)
+                elif u'年' in house.xpath(".//div[@class='followInfo']/text()").extract()[0].split('/')[2]:
+                    number = house.xpath(".//div[@class='followInfo']/text()").re("\d+")[2]
+                    publishday = '365'
+                else:
+                    publishday = house.xpath(".//div[@class='followInfo']/text()").re("\d+")[2]
+            except:
+                print "These are some ecxeptions"
+            else:
+                pass
+            yield {
+                'region': house.xpath(".//div[@class='houseInfo']/a/text()").extract(),
+                'url': house.xpath(".//a[@class='img ']/@href").extract(),
+                'houseInfo': house.xpath(".//div[@class='houseInfo']/text()").extract(),
+                'unitPrice': house.xpath(".//div[@class='unitPrice']/span").re("\d+.\d+"),
+                'totalPrice': house.xpath(".//div[@class='totalPrice']/span").re("\d+.\d+"),
+                'attention': attention,
+                'visited': visited,
+                'publishday': publishday
+            }
+        page = response.xpath("//div[@class='page-box house-lst-page-box'][@page-data]").re("\d+")
+        p = re.compile(r'[^\d]+')
+        # 这里是判断有没有下一页，毕竟不是所有区都是有第100页的，不能for循环到100
+        if len(page) > 1 and page[0] != page[1]:
+            next_page = p.match(response.url).group() + str(int(page[1]) + 1)
+            next_page = response.urljoin(next_page)
+            yield scrapy.Request(next_page, callback=self.parse)
 
 if __name__ == "__main__":
-    url_input = raw_input("请输入网址连接：")
-    if url_input.split("://")[0] != "https" and url_input.split(":")[0] != "www":
-        print url_input.split("://")[0]
-        print u"网页输入错误，未检测到http://???"
-        url_input = raw_input("请再次输入网址连接：")
+    url_input = "https://bj.lianjia.com"
     print u"解析网址..."
-    reg = r'https.\.html'
-    url_link_list = defineRegularFormuler(url_input, reg)
-    print u"获取网址list: "
-    print url_link_list
+    my_home = HomeSpider()
+    url_link_list = my_home.getLink(url_input)
+    print u"获取网址list: %d"%len(url_link_list)
     for url_link in url_link_list:
-        downLoadImge(url_link)
+        print url_link
+        # downLoadInfo(url_link)
