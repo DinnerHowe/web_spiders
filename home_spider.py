@@ -51,7 +51,8 @@ class HomeSpider():
             yield {
                 'region': house.xpath(".//div[@class='houseInfo']/a/text()").extract(),
                 'url': house.xpath(".//a[@class='img ']/@href").extract(),
-                'houseInfo': house.xpath(".//div[@class='houseInfo']/text()").extract(),
+                'houseInfo': house.xpath(".//div[@class='houseInfo']/text()").extrac
+                      t(),
                 'unitPrice': house.xpath(".//div[@class='unitPrice']/span").re("\d+.\d+"),
                 'totalPrice': house.xpath(".//div[@class='totalPrice']/span").re("\d+.\d+"),
                 'attention': attention,
@@ -68,10 +69,10 @@ class HomeSpider():
 
 if __name__ == "__main__":
     url_input = "https://bj.lianjia.com"
-    print u"解析网址..."
+    print u"Analytic URL of https://bj.lianjia.com..."
     my_home = HomeSpider()
     url_link_list = my_home.getLink(url_input)
-    print u"获取网址list: %d"%len(url_link_list)
+    print u"obtain url list: total get %d urls"%len(url_link_list)
     for url_link in url_link_list:
         print url_link
         # downLoadInfo(url_link)
