@@ -6,10 +6,24 @@ This program is free software;
 you can redistribute it and/or modify it
 spdier for images from website
 """
-import urllib2
-import re
-import os
+import os,sys,re
 import scrapy
+reload(sys)
+sys.setdefaultencoding( "utf-8" )
+try_times = 0
+while try_times < 2:
+    try:
+        from bs4 import BeautifulSoup as bs
+        import pandas as pd
+        break
+    except:
+        os.system('sudo apt-get install python-bs4')
+        os.system('pip install pandas --user')
+        os.system('pip install --upgrade pip')
+        try_times += 1
+from collections import OrderedDict
+import urllib2
+
 
 class HomeSpider():
     def getLink(self, url):
@@ -45,14 +59,13 @@ class HomeSpider():
                 else:
                     publishday = house.xpath(".//div[@class='followInfo']/text()").re("\d+")[2]
             except:
-                print "These are some ecxeptions"
+                print ("These are some ecxeptions")
             else:
                 pass
             yield {
                 'region': house.xpath(".//div[@class='houseInfo']/a/text()").extract(),
                 'url': house.xpath(".//a[@class='img ']/@href").extract(),
-                'houseInfo': house.xpath(".//div[@class='houseInfo']/text()").extrac
-                      t(),
+                'houseInfo': house.xpath(".//div[@class='houseInfo']/text()").extract(),
                 'unitPrice': house.xpath(".//div[@class='unitPrice']/span").re("\d+.\d+"),
                 'totalPrice': house.xpath(".//div[@class='totalPrice']/span").re("\d+.\d+"),
                 'attention': attention,
@@ -69,10 +82,10 @@ class HomeSpider():
 
 if __name__ == "__main__":
     url_input = "https://bj.lianjia.com"
-    print u"Analytic URL of https://bj.lianjia.com..."
+    print (u"Analytic URL of https://bj.lianjia.com...")
     my_home = HomeSpider()
     url_link_list = my_home.getLink(url_input)
-    print u"obtain url list: total get %d urls"%len(url_link_list)
+    print (u"obtain url list: total get %d urls"%len(url_link_list))
     for url_link in url_link_list:
         print url_link
         # downLoadInfo(url_link)
